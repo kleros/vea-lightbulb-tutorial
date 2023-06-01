@@ -1,15 +1,28 @@
 import { Wallet } from "ethers";
 import VeaSdk from "@kleros/vea-sdk";
-import envVar from "@kleros/vea-sdk/dist/utils/envVar";
+import env from "@kleros/vea-sdk/dist/utils/env";
 import { Switch__factory } from "../typechain-types/";
 const switchDeployment = require("../deployments/arbitrumGoerli/SwitchArbitrumGoerliToGoerli.json");
 
-const vea = VeaSdk.ClientFactory.arbitrumGoerliToChiadoDevnet(
-  envVar("ARBGOERLI_RPC"),
-  envVar("GOERLI_RPC")
+// Optional logger configuration
+const loggerOptions = {
+  transportTargetOptions: {
+    target: "@logtail/pino",
+    options: { sourceToken: env.require("LOGTAIL_TOKEN") },
+    level: env.optional("LOG_LEVEL", "info"),
+  },
+};
+
+// Create the Vea client
+const vea = VeaSdk.ClientFactory.arbitrumGoerliToGoerliDevnet(
+  env.require("ARBGOERLI_RPC"),
+  env.require("GOERLI_RPC"),
+  loggerOptions
 );
-const privateKey = envVar("PRIVATE_KEY");
-console.log("Environmental variables properly set 👍");
+
+const privateKey = env.require("PRIVATE_KEY");
+const logger = vea.logger
+logger.info("Environmental variables properly set 👍");
 
 const main = async () => {
   const wallet = new Wallet(privateKey, vea.inboxProvider);
@@ -19,12 +32,13 @@ const main = async () => {
   );
   const switchTxn = await switchContract.turnOnLightBulb();
   const switchTxnMined = await switchTxn.wait()
-  console.log("Switch hit 🎚️:", switchTxn);
-  console.log("Tx mined: %O", switchTxnMined?.events && switchTxnMined.events[1].args);
+  logger.info("Switch hit 🎚️:", switchTxn);
+  logger.info("Tx mined: %O", switchTxnMined?.events && switchTxnMined.events[1].args);
+  logger.debug(`Filtering on blockNumber: ${switchTxnMined.blockNumber}`);
 
   const timeNow = Math.floor(Date.now() / 1000);
   const eta = Math.ceil(timeNow / 1800) * 1800 - timeNow + 60;
-  console.log(
+  logger.info(
     `Waiting for Vea Devnet to Bridge Message. ETA ~ ${Math.floor(
       eta / 60
     )} min ${eta % 60} seconds`
@@ -33,19 +47,20 @@ const main = async () => {
 
   const logs = await switchContract.queryFilter(
     switchContract.filters.lightBulbToggled(),
-    switchTxn.blockNumber,
-    switchTxn.blockNumber
+    switchTxnMined.blockNumber,
+    switchTxnMined.blockNumber
   );
   const messageId = logs[0].args.messageId.toNumber();
-  console.log(`Message ID: ${messageId}`);
+  logger.info(`Message ID: ${messageId}`);
 
   // Get the message proof and data
   const messageInfo = await vea.getMessageInfo(messageId);
-  console.log("Message Info: %O", messageInfo);
+  logger.info("Message Info: %O", messageInfo);
 
   // Relay the message
-  await vea.relay(messageInfo, wallet);
-  console.log(`Message ID ${messageId} relayed ✅`);
+  const outboxWallet = new Wallet(privateKey, vea.outboxProvider);
+  await vea.relay(messageInfo, outboxWallet);
+  logger.info(`Message ID ${messageId} relayed ✅`);
 };
 
 function delay(ms: number) {
@@ -55,6 +70,6 @@ function delay(ms: number) {
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error(error);
+    VeaSdk.ClientFactory.logger.error(error);
     process.exit(1);
   });
