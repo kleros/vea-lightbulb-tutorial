@@ -10,7 +10,7 @@
 
 pragma solidity ^0.8.18;
 
-import "@kleros/vea-contracts/interfaces/inboxes/IVeaInbox.sol";
+import "@kleros/vea-contracts/src/interfaces/inboxes/IVeaInbox.sol";
 import "../interfaces/ILightBulb.sol";
 
 /**

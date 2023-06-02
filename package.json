@@ -5,7 +5,7 @@
   "scripts": {
     "build": "yarn hardhat compile",
     "lightbulb": "yarn build && yarn deploy && yarn verify && yarn ts-node",
-    "hit-switch": "yarn ts-node scripts/hit-switch.ts",
+    "hit-switch": "ts-node scripts/hit-switch.ts",
     "lightbulb:chiado": "yarn build && yarn deploy:chiado && yarn verify:chiado",
     "deploy": "yarn hardhat deploy --network goerli && yarn hardhat deploy --network arbitrumGoerli --tags switch-to-goerli",
     "deploy:chiado": "yarn hardhat deploy --network chiado && yarn hardhat deploy --network arbitrumGoerli --tags switch-to-chiado",
@@ -23,7 +23,7 @@
     "typescript": "^5.0.2"
   },
   "dependencies": {
-    "@kleros/vea-contracts": "^0.2.0",
+    "@kleros/vea-sdk": "^0.4.0",
     "@typechain/ethers-v5": "^11.0.0",
     "@typechain/hardhat": "^7.0.0",
     "dotenv": "^8.2.0",

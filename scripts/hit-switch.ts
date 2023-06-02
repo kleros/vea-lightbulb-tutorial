@@ -1,46 +1,75 @@
-import { providers, Wallet } from 'ethers'
-const { BigNumber } = require('@ethersproject/bignumber')
-import * as dotenv from "dotenv";
-import {Switch, Switch__factory, Lightbulb} from '../typechain-types/'
-const switchDeployment = require('../deployments/arbitrumGoerli/SwitchArbitrumGoerliToGoerli.json')
-dotenv.config();
+import { Wallet } from "ethers";
+import VeaSdk from "@kleros/vea-sdk";
+import env from "@kleros/vea-sdk/dist/utils/env";
+import { Switch__factory } from "../typechain-types/";
+const switchDeployment = require("../deployments/arbitrumGoerli/SwitchArbitrumGoerliToGoerli.json");
 
-const envVars = ['PRIVATE_KEY', 'GOERLI_RPC', 'ARBGOERLI_RPC'];
+// Optional logger configuration
+const loggerOptions = {
+  transportTargetOptions: {
+    target: "@logtail/pino",
+    options: { sourceToken: env.require("LOGTAIL_TOKEN") },
+    level: env.optional("LOG_LEVEL", "info"),
+  },
+};
 
-for (const envVar of envVars) {
-  if (!process.env[envVar]) {
-    throw new Error(`Error: set your '${envVar}' environmental variable `)
-  }
-}
-console.log('Environmental variables properly set 👍')
+// Create the Vea client
+const vea = VeaSdk.ClientFactory.arbitrumGoerliToGoerliDevnet(
+  env.require("ARBGOERLI_RPC"),
+  env.require("GOERLI_RPC"),
+  loggerOptions
+);
 
-  /**
- * Set up: instantiate L1 / L2 wallets connected to providers
- */
-
-const l2ProviderArbGoerli = new providers.JsonRpcProvider(process.env.ARBGOERLI_RPC)
+const privateKey = env.require("PRIVATE_KEY");
+const logger = vea.logger
+logger.info("Environmental variables properly set 👍");
 
 const main = async () => {
-
-  const switchContract = Switch__factory.connect(switchDeployment.address, new Wallet(process.env.PRIVATE_KEY!, l2ProviderArbGoerli));
+  const wallet = new Wallet(privateKey, vea.inboxProvider);
+  const switchContract = Switch__factory.connect(
+    switchDeployment.address,
+    wallet
+  );
   const switchTxn = await switchContract.turnOnLightBulb();
-  await switchTxn.wait()
-  console.log('Switch hit 🎚️: ', switchTxn.hash)
+  const switchTxnMined = await switchTxn.wait()
+  logger.info("Switch hit 🎚️:", switchTxn);
+  logger.info("Tx mined: %O", switchTxnMined?.events && switchTxnMined.events[1].args);
+  logger.debug(`Filtering on blockNumber: ${switchTxnMined.blockNumber}`);
 
-  const timeNow = Math.floor(Date.now()/1000)
-  const eta = Math.ceil((timeNow / 1800))*1800 - timeNow + 60;
-  console.log(`Waiting for Vea Devnet to Bridge Message. ETA ~ ${Math.floor(eta/60)} min ${eta % 60} seconds`)
-  await delay(eta*1000)
-  // TODO Proof Relay
-  }
+  const timeNow = Math.floor(Date.now() / 1000);
+  const eta = Math.ceil(timeNow / 1800) * 1800 - timeNow + 60;
+  logger.info(
+    `Waiting for Vea Devnet to Bridge Message. ETA ~ ${Math.floor(
+      eta / 60
+    )} min ${eta % 60} seconds`
+  );
+  await delay(eta * 1000);
 
-main()
-  .then(() => process.exit(0))
-  .catch(error => {
-    console.error(error)
-    process.exit(1)
-  })
+  const logs = await switchContract.queryFilter(
+    switchContract.filters.lightBulbToggled(),
+    switchTxnMined.blockNumber,
+    switchTxnMined.blockNumber
+  );
+  const messageId = logs[0].args.messageId.toNumber();
+  logger.info(`Message ID: ${messageId}`);
+
+  // Get the message proof and data
+  const messageInfo = await vea.getMessageInfo(messageId);
+  logger.info("Message Info: %O", messageInfo);
+
+  // Relay the message
+  const outboxWallet = new Wallet(privateKey, vea.outboxProvider);
+  await vea.relay(messageInfo, outboxWallet);
+  logger.info(`Message ID ${messageId} relayed ✅`);
+};
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}  
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    VeaSdk.ClientFactory.logger.error(error);
+    process.exit(1);
+  });
