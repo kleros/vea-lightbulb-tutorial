@@ -4,9 +4,10 @@
 
 import { ethers } from "ethers";
 import {
+  DeployContractOptions,
   FactoryOptions,
   HardhatEthersHelpers as HardhatEthersHelpersBase,
-} from "@nomiclabs/hardhat-ethers/types";
+} from "@nomicfoundation/hardhat-ethers/types";
 
 import * as Contracts from ".";
 
@@ -21,6 +22,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ILightBulb__factory>;
     getContractFactory(
+      name: "IReceiverGateway",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IReceiverGateway__factory>;
+    getContractFactory(
       name: "Lightbulb",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Lightbulb__factory>;
@@ -31,23 +36,75 @@ declare module "hardhat/types/runtime" {
 
     getContractAt(
       name: "IVeaInbox",
-      address: string,
+      address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.IVeaInbox>;
     getContractAt(
       name: "ILightBulb",
-      address: string,
+      address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.ILightBulb>;
     getContractAt(
+      name: "IReceiverGateway",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IReceiverGateway>;
+    getContractAt(
       name: "Lightbulb",
-      address: string,
+      address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.Lightbulb>;
     getContractAt(
       name: "Switch",
-      address: string,
+      address: string | ethers.Addressable,
       signer?: ethers.Signer
+    ): Promise<Contracts.Switch>;
+
+    deployContract(
+      name: "IVeaInbox",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IVeaInbox>;
+    deployContract(
+      name: "ILightBulb",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ILightBulb>;
+    deployContract(
+      name: "IReceiverGateway",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IReceiverGateway>;
+    deployContract(
+      name: "Lightbulb",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Lightbulb>;
+    deployContract(
+      name: "Switch",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Switch>;
+
+    deployContract(
+      name: "IVeaInbox",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IVeaInbox>;
+    deployContract(
+      name: "ILightBulb",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ILightBulb>;
+    deployContract(
+      name: "IReceiverGateway",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IReceiverGateway>;
+    deployContract(
+      name: "Lightbulb",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Lightbulb>;
+    deployContract(
+      name: "Switch",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Switch>;
 
     // default types
@@ -57,13 +114,22 @@ declare module "hardhat/types/runtime" {
     ): Promise<ethers.ContractFactory>;
     getContractFactory(
       abi: any[],
-      bytecode: ethers.utils.BytesLike,
+      bytecode: ethers.BytesLike,
       signer?: ethers.Signer
     ): Promise<ethers.ContractFactory>;
     getContractAt(
       nameOrAbi: string | any[],
-      address: string,
+      address: string | ethers.Addressable,
       signer?: ethers.Signer
+    ): Promise<ethers.Contract>;
+    deployContract(
+      name: string,
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<ethers.Contract>;
+    deployContract(
+      name: string,
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<ethers.Contract>;
   }
 }

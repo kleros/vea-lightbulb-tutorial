@@ -2,3 +2,4 @@
 /* tslint:disable */
 /* eslint-disable */
 export { ILightBulb__factory } from "./ILightBulb__factory";
+export { IReceiverGateway__factory } from "./IReceiverGateway__factory";

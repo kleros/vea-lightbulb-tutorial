@@ -1,0 +1,48 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "@kleros/vea-contracts/src/interfaces/inboxes/IVeaInbox.sol": {
+      "content": "// SPDX-License-Identifier: MIT\n\n/// @custom:authors: [@jaybuidl, @shotaronowhere]\n/// @custom:reviewers: []\n/// @custom:auditors: []\n/// @custom:bounties: []\n/// @custom:deployments: []\n\npragma solidity ^0.8.24;\n\ninterface IVeaInbox {\n    /// @dev Sends an arbitrary message to receiving chain.\n    /// Note: Calls authenticated by receiving gateway checking the sender argument.\n    /// @param _to The cross-domain contract address which receives the calldata.\n    /// @param _fnSelection The function selector of the receiving contract.\n    /// @param _data The message calldata, abi.encode(...)\n    /// @return msgId The index of the message in the inbox, as a message Id, needed to relay the message.\n    function sendMessage(address _to, bytes4 _fnSelection, bytes memory _data) external returns (uint64 msgId);\n\n    /// @dev Snapshots can be saved a maximum of once per epoch.\n    ///      Saves snapshot of state root.\n    ///      `O(log(count))` where count number of messages in the inbox.\n    function saveSnapshot() external;\n}\n"
+    },
+    "contracts/interfaces/ILightBulb.sol": {
+      "content": "// SPDX-License-Identifier: MIT\n\n/**\n *  @authors: [@shotaronowhere]\n *  @reviewers: []\n *  @auditors: []\n *  @bounties: []\n *  @deployments: []\n */\n\npragma solidity ^0.8.18;\n\ninterface ILightBulb {\n    /**\n    * @dev Toggles the lightbulb on or off.\n    * @param _msgSender The address of the sender on the L2 side.\n    * @param lightBulbOwner The address of the owner of the lightbulb on the L2 side.\n    */\n    function turnOn(address _msgSender, address lightBulbOwner) external;\n}\n"
+    },
+    "contracts/interfaces/IReceiverGateway.sol": {
+      "content": "// SPDX-License-Identifier: MIT\n\n/// @custom:authors: [@jaybuidl, @shotaronowhere]\n/// @custom:reviewers: []\n/// @custom:auditors: []\n/// @custom:bounties: []\n/// @custom:deployments: []\n\npragma solidity ^0.8.24;\n\ninterface IReceiverGateway {\n    function veaOutbox() external view returns (address);\n\n    function senderGateway() external view returns (address);\n\n    function receiveMessage(address msgSender, bytes calldata msgData) external;\n}\n"
+    },
+    "contracts/L1/Lightbulb.sol": {
+      "content": "// SPDX-License-Identifier: MIT\n\nimport  \"../interfaces/IReceiverGateway.sol\";\n\n/**\n *  @authors: [@shotaronowhere, @mani99brar]\n *  @reviewers: []\n *  @auditors: []\n *  @bounties: []\n *  @deployments: []\n */\n\npragma solidity ^0.8.18;\n\n/**\n * @title Lightbulb\n * @dev A lightbulb controlled by a cross-chain switch connected with the Vea bridge.\n **/\n \ncontract Lightbulb is IReceiverGateway {\n    \n    address public immutable veaOutbox; // vea bridge on L1\n    address public immutable lightBulbSwitch; // The switch on arbitrum that controls this lightbulb.\n    mapping (address=>bool) public lightBulbIsOn;\n    \n    constructor(address _veaOutbox, address _lightBulbSwitch) {\n        veaOutbox = _veaOutbox;\n        lightBulbSwitch = _lightBulbSwitch;\n    }\n\n    modifier onlyAuthenticatedFromVea(address _msgSender) {\n        require(msg.sender == veaOutbox, \"L1 Auth: Only Vea Bridge.\");\n        require(_msgSender == lightBulbSwitch, \"L2 Auth: Only the switch can turn on the lightbulb.\");\n        _;\n    }\n\n    function senderGateway() external view override returns (address) {\n        return lightBulbSwitch;\n    }\n\n    /**\n    * @dev Receives the message from VeaOutbox and toggles the lightbulb on.\n    * @param msgSender The address of the sender on the L2 side.\n    * @param msgData The encoded data containing the lightbulb owner's address.\n    */\n    function receiveMessage(address msgSender, bytes calldata msgData) external override onlyAuthenticatedFromVea(msgSender) {\n        (address lightBulbOwner) = abi.decode(msgData, (address));\n        lightBulbIsOn[lightBulbOwner] = true;\n    }\n}"
+    },
+    "contracts/L2/Switch.sol": {
+      "content": "// SPDX-License-Identifier: MIT\n\n/**\n *  @authors: [@shotaronowhere, @mani99brar]\n *  @reviewers: []\n *  @auditors: []\n *  @bounties: []\n *  @deployments: []\n */\n\npragma solidity ^0.8.30;\n\nimport \"@kleros/vea-contracts/src/interfaces/inboxes/IVeaInbox.sol\";\n\n/**\n * @title Lightbulb\n * @dev A switch on arbitrum turning a light on and off on arbitrum with the Vea bridge.\n */\ncontract Switch{\n\n    IVeaInbox public immutable veaInbox; // vea inbox on arbitrum\n    address public immutable lightBulb; // gateway on goerli\n\n    /**\n     * @dev The Fast Bridge participants watch for these events to decide if a challenge should be submitted.\n     * @param messageId The id of the message sent to the lightbulb.\n     * @param lightBulbOwner The address of the owner of the lightbulb on the L2 side.\n     */\n    event lightBulbToggled(uint64 messageId, address lightBulbOwner);\n\n    constructor(address _veaInbox, address _lightBulb) {\n        veaInbox = IVeaInbox(_veaInbox);\n        lightBulb = _lightBulb;\n    }\n\n    function turnOnLightBulb() external {\n        bytes memory _msgData = abi.encode(msg.sender);\n        bytes4 selector = bytes4(keccak256(\"turnOnLightBulb(address)\"));\n        uint64 msgId = veaInbox.sendMessage(lightBulb, selector,_msgData);\n        emit lightBulbToggled(msgId, msg.sender);\n    }\n}"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "runs": 10000
+    },
+    "evmVersion": "paris",
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout",
+          "evm.gasEstimates"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  }
+}

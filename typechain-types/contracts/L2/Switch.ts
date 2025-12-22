@@ -3,38 +3,32 @@
 /* eslint-disable */
 import type {
   BaseContract,
-  BigNumber,
+  BigNumberish,
   BytesLike,
-  CallOverrides,
-  ContractTransaction,
-  Overrides,
-  PopulatedTransaction,
-  Signer,
-  utils,
-} from "ethers";
-import type {
   FunctionFragment,
   Result,
+  Interface,
   EventFragment,
-} from "@ethersproject/abi";
-import type { Listener, Provider } from "@ethersproject/providers";
+  AddressLike,
+  ContractRunner,
+  ContractMethod,
+  Listener,
+} from "ethers";
 import type {
-  TypedEventFilter,
-  TypedEvent,
+  TypedContractEvent,
+  TypedDeferredTopicFilter,
+  TypedEventLog,
+  TypedLogDescription,
   TypedListener,
-  OnEvent,
+  TypedContractMethod,
 } from "../../common";
 
-export interface SwitchInterface extends utils.Interface {
-  functions: {
-    "lightBulb()": FunctionFragment;
-    "turnOnLightBulb()": FunctionFragment;
-    "veaInbox()": FunctionFragment;
-  };
-
+export interface SwitchInterface extends Interface {
   getFunction(
-    nameOrSignatureOrTopic: "lightBulb" | "turnOnLightBulb" | "veaInbox"
+    nameOrSignature: "lightBulb" | "turnOnLightBulb" | "veaInbox"
   ): FunctionFragment;
+
+  getEvent(nameOrSignatureOrTopic: "lightBulbToggled"): EventFragment;
 
   encodeFunctionData(functionFragment: "lightBulb", values?: undefined): string;
   encodeFunctionData(
@@ -49,106 +43,105 @@ export interface SwitchInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "veaInbox", data: BytesLike): Result;
-
-  events: {
-    "lightBulbToggled(uint64,address)": EventFragment;
-  };
-
-  getEvent(nameOrSignatureOrTopic: "lightBulbToggled"): EventFragment;
 }
 
-export interface lightBulbToggledEventObject {
-  messageId: BigNumber;
-  lightBulbOwner: string;
+export namespace lightBulbToggledEvent {
+  export type InputTuple = [
+    messageId: BigNumberish,
+    lightBulbOwner: AddressLike
+  ];
+  export type OutputTuple = [messageId: bigint, lightBulbOwner: string];
+  export interface OutputObject {
+    messageId: bigint;
+    lightBulbOwner: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
 }
-export type lightBulbToggledEvent = TypedEvent<
-  [BigNumber, string],
-  lightBulbToggledEventObject
->;
-
-export type lightBulbToggledEventFilter =
-  TypedEventFilter<lightBulbToggledEvent>;
 
 export interface Switch extends BaseContract {
-  connect(signerOrProvider: Signer | Provider | string): this;
-  attach(addressOrName: string): this;
-  deployed(): Promise<this>;
+  connect(runner?: ContractRunner | null): Switch;
+  waitForDeployment(): Promise<this>;
 
   interface: SwitchInterface;
 
-  queryFilter<TEvent extends TypedEvent>(
-    event: TypedEventFilter<TEvent>,
+  queryFilter<TCEvent extends TypedContractEvent>(
+    event: TCEvent,
     fromBlockOrBlockhash?: string | number | undefined,
     toBlock?: string | number | undefined
-  ): Promise<Array<TEvent>>;
+  ): Promise<Array<TypedEventLog<TCEvent>>>;
+  queryFilter<TCEvent extends TypedContractEvent>(
+    filter: TypedDeferredTopicFilter<TCEvent>,
+    fromBlockOrBlockhash?: string | number | undefined,
+    toBlock?: string | number | undefined
+  ): Promise<Array<TypedEventLog<TCEvent>>>;
 
-  listeners<TEvent extends TypedEvent>(
-    eventFilter?: TypedEventFilter<TEvent>
-  ): Array<TypedListener<TEvent>>;
-  listeners(eventName?: string): Array<Listener>;
-  removeAllListeners<TEvent extends TypedEvent>(
-    eventFilter: TypedEventFilter<TEvent>
-  ): this;
-  removeAllListeners(eventName?: string): this;
-  off: OnEvent<this>;
-  on: OnEvent<this>;
-  once: OnEvent<this>;
-  removeListener: OnEvent<this>;
+  on<TCEvent extends TypedContractEvent>(
+    event: TCEvent,
+    listener: TypedListener<TCEvent>
+  ): Promise<this>;
+  on<TCEvent extends TypedContractEvent>(
+    filter: TypedDeferredTopicFilter<TCEvent>,
+    listener: TypedListener<TCEvent>
+  ): Promise<this>;
 
-  functions: {
-    lightBulb(overrides?: CallOverrides): Promise<[string]>;
+  once<TCEvent extends TypedContractEvent>(
+    event: TCEvent,
+    listener: TypedListener<TCEvent>
+  ): Promise<this>;
+  once<TCEvent extends TypedContractEvent>(
+    filter: TypedDeferredTopicFilter<TCEvent>,
+    listener: TypedListener<TCEvent>
+  ): Promise<this>;
 
-    turnOnLightBulb(
-      overrides?: Overrides & { from?: string }
-    ): Promise<ContractTransaction>;
+  listeners<TCEvent extends TypedContractEvent>(
+    event: TCEvent
+  ): Promise<Array<TypedListener<TCEvent>>>;
+  listeners(eventName?: string): Promise<Array<Listener>>;
+  removeAllListeners<TCEvent extends TypedContractEvent>(
+    event?: TCEvent
+  ): Promise<this>;
 
-    veaInbox(overrides?: CallOverrides): Promise<[string]>;
-  };
+  lightBulb: TypedContractMethod<[], [string], "view">;
 
-  lightBulb(overrides?: CallOverrides): Promise<string>;
+  turnOnLightBulb: TypedContractMethod<[], [void], "nonpayable">;
 
-  turnOnLightBulb(
-    overrides?: Overrides & { from?: string }
-  ): Promise<ContractTransaction>;
+  veaInbox: TypedContractMethod<[], [string], "view">;
 
-  veaInbox(overrides?: CallOverrides): Promise<string>;
+  getFunction<T extends ContractMethod = ContractMethod>(
+    key: string | FunctionFragment
+  ): T;
 
-  callStatic: {
-    lightBulb(overrides?: CallOverrides): Promise<string>;
+  getFunction(
+    nameOrSignature: "lightBulb"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "turnOnLightBulb"
+  ): TypedContractMethod<[], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "veaInbox"
+  ): TypedContractMethod<[], [string], "view">;
 
-    turnOnLightBulb(overrides?: CallOverrides): Promise<void>;
-
-    veaInbox(overrides?: CallOverrides): Promise<string>;
-  };
+  getEvent(
+    key: "lightBulbToggled"
+  ): TypedContractEvent<
+    lightBulbToggledEvent.InputTuple,
+    lightBulbToggledEvent.OutputTuple,
+    lightBulbToggledEvent.OutputObject
+  >;
 
   filters: {
-    "lightBulbToggled(uint64,address)"(
-      messageId?: null,
-      lightBulbOwner?: null
-    ): lightBulbToggledEventFilter;
-    lightBulbToggled(
-      messageId?: null,
-      lightBulbOwner?: null
-    ): lightBulbToggledEventFilter;
-  };
-
-  estimateGas: {
-    lightBulb(overrides?: CallOverrides): Promise<BigNumber>;
-
-    turnOnLightBulb(
-      overrides?: Overrides & { from?: string }
-    ): Promise<BigNumber>;
-
-    veaInbox(overrides?: CallOverrides): Promise<BigNumber>;
-  };
-
-  populateTransaction: {
-    lightBulb(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    turnOnLightBulb(
-      overrides?: Overrides & { from?: string }
-    ): Promise<PopulatedTransaction>;
-
-    veaInbox(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    "lightBulbToggled(uint64,address)": TypedContractEvent<
+      lightBulbToggledEvent.InputTuple,
+      lightBulbToggledEvent.OutputTuple,
+      lightBulbToggledEvent.OutputObject
+    >;
+    lightBulbToggled: TypedContractEvent<
+      lightBulbToggledEvent.InputTuple,
+      lightBulbToggledEvent.OutputTuple,
+      lightBulbToggledEvent.OutputObject
+    >;
   };
 }
