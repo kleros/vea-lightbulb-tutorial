@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: MIT
 
 /**
- *  @authors: [@shotaronowhere]
+ *  @authors: [@shotaronowhere, @mani99brar]
  *  @reviewers: []
  *  @auditors: []
  *  @bounties: []
  *  @deployments: []
  */
 
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.30;
 
-import "@kleros/vea-contracts/interfaces/inboxes/IVeaInbox.sol";
-import "../interfaces/ILightBulb.sol";
+import "@kleros/vea-contracts/src/interfaces/inboxes/IVeaInbox.sol";
 
 /**
  * @title Lightbulb
@@ -36,7 +35,7 @@ contract Switch{
 
     function turnOnLightBulb() external {
         bytes memory _msgData = abi.encode(msg.sender);
-        uint64 msgId = veaInbox.sendMessage(lightBulb, ILightBulb.turnOn.selector, _msgData);
+        uint64 msgId = veaInbox.sendMessage(lightBulb, _msgData);
         emit lightBulbToggled(msgId, msg.sender);
     }
 }

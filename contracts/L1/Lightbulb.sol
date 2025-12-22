@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 
+import  "../interfaces/IReceiverGateway.sol";
+
 /**
- *  @authors: [@shotaronowhere]
+ *  @authors: [@shotaronowhere, @mani99brar]
  *  @reviewers: []
  *  @auditors: []
  *  @bounties: []
@@ -15,7 +17,7 @@ pragma solidity ^0.8.18;
  * @dev A lightbulb controlled by a cross-chain switch connected with the Vea bridge.
  **/
  
-contract Lightbulb{
+contract Lightbulb is IReceiverGateway {
     
     address public immutable veaOutbox; // vea bridge on L1
     address public immutable lightBulbSwitch; // The switch on arbitrum that controls this lightbulb.
@@ -32,13 +34,17 @@ contract Lightbulb{
         _;
     }
 
+    function senderGateway() external view override returns (address) {
+        return lightBulbSwitch;
+    }
+
     /**
-    * @dev Toggles the lightbulb on or off.
-    * @param _msgSender The address of the sender on the L2 side.
-    * @param lightBulbOwner The address of the owner of the lightbulb on the L2 side.
+    * @dev Receives the message from VeaOutbox and toggles the lightbulb on.
+    * @param msgSender The address of the sender on the L2 side.
+    * @param msgData The encoded data containing the lightbulb owner's address.
     */
-    function turnOn(address _msgSender, address lightBulbOwner) external onlyAuthenticatedFromVea(_msgSender) {
-        // lightBulbOwner authentication is done on the L2 switch side.
+    function receiveMessage(address msgSender, bytes calldata msgData) external override onlyAuthenticatedFromVea(msgSender) {
+        (address lightBulbOwner) = abi.decode(msgData, (address));
         lightBulbIsOn[lightBulbOwner] = true;
     }
 }

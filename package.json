@@ -7,28 +7,28 @@
     "lightbulb": "yarn build && yarn deploy && yarn verify && yarn ts-node",
     "hit-switch": "yarn ts-node scripts/hit-switch.ts",
     "lightbulb:chiado": "yarn build && yarn deploy:chiado && yarn verify:chiado",
-    "deploy": "yarn hardhat deploy --network goerli && yarn hardhat deploy --network arbitrumGoerli --tags switch-to-goerli",
-    "deploy:chiado": "yarn hardhat deploy --network chiado && yarn hardhat deploy --network arbitrumGoerli --tags switch-to-chiado",
-    "verify": "yarn hardhat etherscan-verify --network goerli && yarn hardhat etherscan-verify --network arbitrumGoerli",
-    "verify:chiado": "yarn hardhat etherscan-verify --network chiado --solc-input && yarn hardhat etherscan-verify --network arbitrumGoerli"
+    "deploy": "yarn hardhat deploy --network sepolia && yarn hardhat deploy --network arbitrumSepolia --tags switch-to-sepolia",
+    "deploy:chiado": "yarn hardhat deploy --network chiado && yarn hardhat deploy --network arbitrumSepolia --tags switch-to-chiado",
+    "verify": "yarn hardhat etherscan-verify --network sepolia && yarn hardhat etherscan-verify --network arbitrumSepolia",
+    "verify:chiado": "yarn hardhat etherscan-verify --network chiado --solc-input && yarn hardhat etherscan-verify --network arbitrumSepolia"
   },
   "devDependencies": {
-    "@nomiclabs/hardhat-ethers": "^2.2.2",
-    "@nomiclabs/hardhat-etherscan": "^3.1.7",
-    "ethers": "^5.7.2",
-    "hardhat": "^2.13.0",
-    "hardhat-deploy": "^0.11.25",
-    "hardhat-deploy-ethers": "0.3.0-beta.13",
-    "ts-node": "^10.9.1",
+    "@nomicfoundation/hardhat-ethers": "^3.1.0",
+    "ethers": "^6.13.5",
+    "hardhat": "2.26.2",
+    "hardhat-deploy": "^1.0.4",
+    "hardhat-deploy-ethers": "^0.4.2",
+    "ts-node": "^10.9.2",
     "typescript": "^5.0.2"
   },
   "dependencies": {
-    "@kleros/vea-contracts": "^0.2.0",
-    "@typechain/ethers-v5": "^11.0.0",
-    "@typechain/hardhat": "^7.0.0",
-    "dotenv": "^8.2.0",
+    "@kleros/vea-contracts": "^0.7.0",
+    "@typechain/ethers-v6": "^0.5.1",
+    "@typechain/hardhat": "^9.1.0",
+    "dotenv": "^16.4.5",
     "ethereumjs-util": "^7.1.5",
-    "solidity-coverage": "^0.8.2",
-    "typechain": "^8.2.0"
-  }
+    "solidity-coverage": "^0.8.16",
+    "typechain": "^8.3.2"
+  },
+  "packageManager": "yarn@4.6.0+sha512.5383cc12567a95f1d668fbe762dfe0075c595b4bfff433be478dbbe24e05251a8e8c3eb992a986667c1d53b6c3a9c85b8398c35a960587fbd9fa3a0915406728"
 }

@@ -3,51 +3,48 @@
 /* eslint-disable */
 import type {
   BaseContract,
-  BigNumber,
   BytesLike,
-  CallOverrides,
-  ContractTransaction,
-  Overrides,
-  PopulatedTransaction,
-  Signer,
-  utils,
+  FunctionFragment,
+  Result,
+  Interface,
+  AddressLike,
+  ContractRunner,
+  ContractMethod,
+  Listener,
 } from "ethers";
-import type { FunctionFragment, Result } from "@ethersproject/abi";
-import type { Listener, Provider } from "@ethersproject/providers";
 import type {
-  TypedEventFilter,
-  TypedEvent,
+  TypedContractEvent,
+  TypedDeferredTopicFilter,
+  TypedEventLog,
   TypedListener,
-  OnEvent,
+  TypedContractMethod,
 } from "../../common";
 
-export interface LightbulbInterface extends utils.Interface {
-  functions: {
-    "lightBulbIsOn(address)": FunctionFragment;
-    "lightBulbSwitch()": FunctionFragment;
-    "turnOn(address,address)": FunctionFragment;
-    "veaOutbox()": FunctionFragment;
-  };
-
+export interface LightbulbInterface extends Interface {
   getFunction(
-    nameOrSignatureOrTopic:
+    nameOrSignature:
       | "lightBulbIsOn"
       | "lightBulbSwitch"
-      | "turnOn"
+      | "receiveMessage"
+      | "senderGateway"
       | "veaOutbox"
   ): FunctionFragment;
 
   encodeFunctionData(
     functionFragment: "lightBulbIsOn",
-    values: [string]
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "lightBulbSwitch",
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "turnOn",
-    values: [string, string]
+    functionFragment: "receiveMessage",
+    values: [AddressLike, BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "senderGateway",
+    values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "veaOutbox", values?: undefined): string;
 
@@ -59,108 +56,97 @@ export interface LightbulbInterface extends utils.Interface {
     functionFragment: "lightBulbSwitch",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "turnOn", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "receiveMessage",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "senderGateway",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "veaOutbox", data: BytesLike): Result;
-
-  events: {};
 }
 
 export interface Lightbulb extends BaseContract {
-  connect(signerOrProvider: Signer | Provider | string): this;
-  attach(addressOrName: string): this;
-  deployed(): Promise<this>;
+  connect(runner?: ContractRunner | null): Lightbulb;
+  waitForDeployment(): Promise<this>;
 
   interface: LightbulbInterface;
 
-  queryFilter<TEvent extends TypedEvent>(
-    event: TypedEventFilter<TEvent>,
+  queryFilter<TCEvent extends TypedContractEvent>(
+    event: TCEvent,
     fromBlockOrBlockhash?: string | number | undefined,
     toBlock?: string | number | undefined
-  ): Promise<Array<TEvent>>;
+  ): Promise<Array<TypedEventLog<TCEvent>>>;
+  queryFilter<TCEvent extends TypedContractEvent>(
+    filter: TypedDeferredTopicFilter<TCEvent>,
+    fromBlockOrBlockhash?: string | number | undefined,
+    toBlock?: string | number | undefined
+  ): Promise<Array<TypedEventLog<TCEvent>>>;
 
-  listeners<TEvent extends TypedEvent>(
-    eventFilter?: TypedEventFilter<TEvent>
-  ): Array<TypedListener<TEvent>>;
-  listeners(eventName?: string): Array<Listener>;
-  removeAllListeners<TEvent extends TypedEvent>(
-    eventFilter: TypedEventFilter<TEvent>
-  ): this;
-  removeAllListeners(eventName?: string): this;
-  off: OnEvent<this>;
-  on: OnEvent<this>;
-  once: OnEvent<this>;
-  removeListener: OnEvent<this>;
+  on<TCEvent extends TypedContractEvent>(
+    event: TCEvent,
+    listener: TypedListener<TCEvent>
+  ): Promise<this>;
+  on<TCEvent extends TypedContractEvent>(
+    filter: TypedDeferredTopicFilter<TCEvent>,
+    listener: TypedListener<TCEvent>
+  ): Promise<this>;
 
-  functions: {
-    lightBulbIsOn(arg0: string, overrides?: CallOverrides): Promise<[boolean]>;
+  once<TCEvent extends TypedContractEvent>(
+    event: TCEvent,
+    listener: TypedListener<TCEvent>
+  ): Promise<this>;
+  once<TCEvent extends TypedContractEvent>(
+    filter: TypedDeferredTopicFilter<TCEvent>,
+    listener: TypedListener<TCEvent>
+  ): Promise<this>;
 
-    lightBulbSwitch(overrides?: CallOverrides): Promise<[string]>;
+  listeners<TCEvent extends TypedContractEvent>(
+    event: TCEvent
+  ): Promise<Array<TypedListener<TCEvent>>>;
+  listeners(eventName?: string): Promise<Array<Listener>>;
+  removeAllListeners<TCEvent extends TypedContractEvent>(
+    event?: TCEvent
+  ): Promise<this>;
 
-    turnOn(
-      _msgSender: string,
-      lightBulbOwner: string,
-      overrides?: Overrides & { from?: string }
-    ): Promise<ContractTransaction>;
+  lightBulbIsOn: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
 
-    veaOutbox(overrides?: CallOverrides): Promise<[string]>;
-  };
+  lightBulbSwitch: TypedContractMethod<[], [string], "view">;
 
-  lightBulbIsOn(arg0: string, overrides?: CallOverrides): Promise<boolean>;
+  receiveMessage: TypedContractMethod<
+    [msgSender: AddressLike, msgData: BytesLike],
+    [void],
+    "nonpayable"
+  >;
 
-  lightBulbSwitch(overrides?: CallOverrides): Promise<string>;
+  senderGateway: TypedContractMethod<[], [string], "view">;
 
-  turnOn(
-    _msgSender: string,
-    lightBulbOwner: string,
-    overrides?: Overrides & { from?: string }
-  ): Promise<ContractTransaction>;
+  veaOutbox: TypedContractMethod<[], [string], "view">;
 
-  veaOutbox(overrides?: CallOverrides): Promise<string>;
+  getFunction<T extends ContractMethod = ContractMethod>(
+    key: string | FunctionFragment
+  ): T;
 
-  callStatic: {
-    lightBulbIsOn(arg0: string, overrides?: CallOverrides): Promise<boolean>;
-
-    lightBulbSwitch(overrides?: CallOverrides): Promise<string>;
-
-    turnOn(
-      _msgSender: string,
-      lightBulbOwner: string,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    veaOutbox(overrides?: CallOverrides): Promise<string>;
-  };
+  getFunction(
+    nameOrSignature: "lightBulbIsOn"
+  ): TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "lightBulbSwitch"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "receiveMessage"
+  ): TypedContractMethod<
+    [msgSender: AddressLike, msgData: BytesLike],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "senderGateway"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "veaOutbox"
+  ): TypedContractMethod<[], [string], "view">;
 
   filters: {};
-
-  estimateGas: {
-    lightBulbIsOn(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
-
-    lightBulbSwitch(overrides?: CallOverrides): Promise<BigNumber>;
-
-    turnOn(
-      _msgSender: string,
-      lightBulbOwner: string,
-      overrides?: Overrides & { from?: string }
-    ): Promise<BigNumber>;
-
-    veaOutbox(overrides?: CallOverrides): Promise<BigNumber>;
-  };
-
-  populateTransaction: {
-    lightBulbIsOn(
-      arg0: string,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    lightBulbSwitch(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    turnOn(
-      _msgSender: string,
-      lightBulbOwner: string,
-      overrides?: Overrides & { from?: string }
-    ): Promise<PopulatedTransaction>;
-
-    veaOutbox(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-  };
 }
